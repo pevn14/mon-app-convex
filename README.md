@@ -13,7 +13,7 @@ Le front React est un support minimal. L'objectif est d'explorer les briques Con
 | 3     | Schéma + validation       | Structurer proprement les données                       | ✅     |
 | 4     | Auth (Clerk)              | Introduire l'identité utilisateur via Clerk             | ✅     |
 | 5     | Autorisation              | Filtrer les données selon l'utilisateur                 | ✅     |
-| 6     | HTTP Actions / API        | Exposer un endpoint REST ou webhook                     |        |
+| 6     | HTTP Actions / API        | Exposer un endpoint REST ou webhook                     | ✅     |
 | 7     | Action externe            | Appeler une API tierce depuis Convex                    |        |
 | 8     | File storage + scheduling | Upload de fichier puis tâche planifiée                  |        |
 
@@ -60,6 +60,47 @@ Différence clé avec Convex Auth : Clerk gère entièrement l'authentification 
 - **`src/App.tsx`** : `useUser()` de Clerk pour afficher l'email de l'utilisateur connecté
 
 `ctx.auth.getUserIdentity()` est l'API Convex standard, identique quel que soit le provider (Clerk, Convex Auth, Better Auth…). `identity.subject` contient l'identifiant unique de l'utilisateur fourni par le provider.
+
+### Étape 6 — HTTP Actions
+
+- **`convex/http.ts`** : routeur HTTP Convex avec 5 endpoints
+- **`convex/tasks.ts`** : ajout de `listAll` (internalQuery) et `createTaskAsApi` / `deleteTaskAsApi` (internalMutation) sans vérification d'identité Clerk
+
+Les HTTP Actions s'exposent sur le **site URL** Convex (`*.convex.site`), distinct du cloud URL (`*.convex.cloud`) utilisé par le SDK React.
+
+#### Endpoints
+
+| Méthode | Route    | Auth      | Description                                 |
+| ------- | -------- | --------- | ------------------------------------------- |
+| GET     | `/ping`  | —         | Health check, retourne `{ ok: true }`       |
+| POST    | `/echo`  | —         | Renvoie le body JSON reçu                   |
+| GET     | `/tasks` | API key   | Liste toutes les tâches (vue admin)         |
+| POST    | `/tasks` | API key   | Crée une tâche avec `userId: "api"`         |
+| DELETE  | `/task`  | API key   | Supprime une tâche par `?id=` (404 si absente) |
+
+#### Concepts clés
+
+- Une HTTP Action ne peut pas accéder à `ctx.db` directement — elle délègue via `ctx.runQuery` / `ctx.runMutation`
+- `internalQuery` / `internalMutation` : fonctions privées, inaccessibles depuis le client React, appelables uniquement depuis le serveur Convex
+- L'API key est stockée comme variable d'environnement Convex (`API_KEY`) et lue via `process.env.API_KEY`
+- Les tâches créées via API ont `userId: "api"` — elles n'apparaissent pas dans l'UI React (filtrée par userId Clerk) mais sont visibles dans la vue admin
+
+#### Exemple curl
+
+```bash
+# Lister toutes les tâches
+curl https://<deployment>.convex.site/tasks -H "x-api-key: <clé>"
+
+# Créer une tâche
+curl -X POST https://<deployment>.convex.site/tasks \
+  -H "Content-Type: application/json" \
+  -H "x-api-key: <clé>" \
+  -d '{"text": "tâche via API"}'
+
+# Supprimer une tâche
+curl -X DELETE "https://<deployment>.convex.site/task?id=<id>" \
+  -H "x-api-key: <clé>"
+```
 
 ## Stack
 
