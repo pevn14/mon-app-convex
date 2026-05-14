@@ -63,6 +63,8 @@ Différence clé avec Convex Auth : Clerk gère entièrement l'authentification 
 
 ### Étape 6 — HTTP Actions
 
+- **`convex/convex.config.ts`** : enregistrement du composant `@convex-dev/rate-limiter`
+- **`convex/rateLimiter.ts`** : règle `api` — fixed window, 10 appels/minute par clé
 - **`convex/http.ts`** : routeur HTTP Convex avec 5 endpoints
 - **`convex/tasks.ts`** : ajout de `listAll` (internalQuery) et `createTaskAsApi` / `deleteTaskAsApi` (internalMutation) sans vérification d'identité Clerk
 
@@ -70,13 +72,13 @@ Les HTTP Actions s'exposent sur le **site URL** Convex (`*.convex.site`), distin
 
 #### Endpoints
 
-| Méthode | Route    | Auth      | Description                                 |
-| ------- | -------- | --------- | ------------------------------------------- |
-| GET     | `/ping`  | —         | Health check, retourne `{ ok: true }`       |
-| POST    | `/echo`  | —         | Renvoie le body JSON reçu                   |
-| GET     | `/tasks` | API key   | Liste toutes les tâches (vue admin)         |
-| POST    | `/tasks` | API key   | Crée une tâche avec `userId: "api"`         |
-| DELETE  | `/task`  | API key   | Supprime une tâche par `?id=` (404 si absente) |
+| Méthode | Route    | Auth + Rate limit          | Description                                    |
+| ------- | -------- | -------------------------- | ---------------------------------------------- |
+| GET     | `/ping`  | —                          | Health check, retourne `{ ok: true }`          |
+| POST    | `/echo`  | —                          | Renvoie le body JSON reçu                      |
+| GET     | `/tasks` | API key + 10 appels/min    | Liste toutes les tâches (vue admin)            |
+| POST    | `/tasks` | API key + 10 appels/min    | Crée une tâche avec `userId: "api"`            |
+| DELETE  | `/task`  | API key + 10 appels/min    | Supprime une tâche par `?id=` (404 si absente) |
 
 #### Concepts clés
 
@@ -84,6 +86,7 @@ Les HTTP Actions s'exposent sur le **site URL** Convex (`*.convex.site`), distin
 - `internalQuery` / `internalMutation` : fonctions privées, inaccessibles depuis le client React, appelables uniquement depuis le serveur Convex
 - L'API key est stockée comme variable d'environnement Convex (`API_KEY`) et lue via `process.env.API_KEY`
 - Les tâches créées via API ont `userId: "api"` — elles n'apparaissent pas dans l'UI React (filtrée par userId Clerk) mais sont visibles dans la vue admin
+- Le rate limiting utilise une **fixed window** de 60s : compteur remis à zéro toutes les minutes, par clé API. Retourne 429 si la limite est dépassée.
 
 #### Exemple curl
 

@@ -1,16 +1,29 @@
 import { httpRouter } from "convex/server";
 import { httpAction } from "./_generated/server";
 import { internal } from "./_generated/api";
+import { rateLimiter } from "./rateLimiter";
 
 const http = httpRouter();
 
 function requireApiKey(req: Request): Response | null {
   const apiKey = req.headers.get("x-api-key");
-  if (apiKey !== process.env.API_KEY) {
+  if (!apiKey || apiKey !== process.env.API_KEY) {
     return new Response(JSON.stringify({ error: "Unauthorized" }), {
       status: 401,
       headers: { "Content-Type": "application/json" },
     });
+  }
+  return null;
+}
+
+async function checkRateLimit(ctx: any, req: Request): Promise<Response | null> {
+  const apiKey = req.headers.get("x-api-key")!;
+  const { ok } = await rateLimiter.limit(ctx, "api", { key: apiKey });
+  if (!ok) {
+    return new Response(
+      JSON.stringify({ error: "Trop de requêtes — limite : 10 appels/minute" }),
+      { status: 429, headers: { "Content-Type": "application/json" } }
+    );
   }
   return null;
 }
@@ -45,6 +58,9 @@ http.route({
     const unauthorized = requireApiKey(req);
     if (unauthorized) return unauthorized;
 
+    const limited = await checkRateLimit(ctx, req);
+    if (limited) return limited;
+
     const tasks = await ctx.runQuery(internal.tasks.listAll);
     return new Response(JSON.stringify(tasks), {
       status: 200,
@@ -59,6 +75,9 @@ http.route({
   handler: httpAction(async (ctx, req) => {
     const unauthorized = requireApiKey(req);
     if (unauthorized) return unauthorized;
+
+    const limited = await checkRateLimit(ctx, req);
+    if (limited) return limited;
 
     const { text } = await req.json();
     const id = await ctx.runMutation(internal.tasks.createTaskAsApi, { text });
@@ -75,6 +94,9 @@ http.route({
   handler: httpAction(async (ctx, req) => {
     const unauthorized = requireApiKey(req);
     if (unauthorized) return unauthorized;
+
+    const limited = await checkRateLimit(ctx, req);
+    if (limited) return limited;
 
     const id = new URL(req.url).searchParams.get("id");
     if (!id) {
