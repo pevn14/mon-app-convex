@@ -14,7 +14,7 @@ Le front React est un support minimal. L'objectif est d'explorer les briques Con
 | 4     | Auth (Clerk)              | Introduire l'identité utilisateur via Clerk             | ✅     |
 | 5     | Autorisation              | Filtrer les données selon l'utilisateur                 | ✅     |
 | 6     | HTTP Actions / API        | Exposer un endpoint REST ou webhook                     | ✅     |
-| 7     | Action externe            | Appeler une API tierce depuis Convex                    |        |
+| 7     | Action externe            | Appeler une API tierce depuis Convex                    | ✅     |
 | 8     | File storage + scheduling | Upload de fichier puis tâche planifiée                  |        |
 
 ## Ce qui a été implémenté
@@ -103,6 +103,32 @@ curl -X POST https://<deployment>.convex.site/tasks \
 # Supprimer une tâche
 curl -X DELETE "https://<deployment>.convex.site/task?id=<id>" \
   -H "x-api-key: <clé>"
+```
+
+### Étape 7 — Actions externes
+
+- **`convex/actions.ts`** :
+  - `fetchPost` : appelle `jsonplaceholder.typicode.com/posts/:id` et retourne le JSON brut au front
+  - `importTodo` : appelle `jsonplaceholder.typicode.com/todos/:id`, mappe le résultat, délègue l'écriture à une `internalMutation`
+- **`convex/tasks.ts`** : ajout de `createImportedTask` (internalMutation) — reçoit `text`, `completed` et `userId`, insère en base
+- **`src/App.tsx`** : `useAction` pour appeler les deux actions depuis React, compteur 1→100 pour `importTodo`
+
+#### Concepts clés
+
+- Les actions peuvent appeler des API externes via `fetch` (disponible nativement, sans `"use node"`)
+- `ctx.auth.getUserIdentity()` fonctionne dans les actions — le JWT Clerk est transmis automatiquement par le SDK
+- Les actions ne peuvent pas écrire en base directement — elles délèguent via `ctx.runMutation`
+- La `internalMutation` est privée (inaccessible depuis le front) et transactionnelle
+
+#### Cheminement d'un appel `importTodo` depuis React
+
+```
+[React] useAction → importTodo (action)
+  → ctx.auth.getUserIdentity()     — vérifie le JWT
+  → fetch(jsonplaceholder/todos/N) — appel réseau externe
+  → ctx.runMutation(createImportedTask, { text, completed, userId })
+      → ctx.db.insert('tasks', ...)  — écriture transactionnelle
+          → useQuery(list) mis à jour en temps réel
 ```
 
 ## Stack

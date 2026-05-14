@@ -20,6 +20,13 @@ export const list = query({
   },
 })
 
+export const createImportedTask = internalMutation({
+  args: { text: v.string(), completed: v.boolean(), userId: v.string() },
+  handler: async (ctx, args) => {
+    await ctx.db.insert('tasks', { text: args.text, completed: args.completed, userId: args.userId })
+  },
+})
+
 export const createTaskAsApi = internalMutation({
   args: { text: v.string() },
   handler: async (ctx, args) => {
