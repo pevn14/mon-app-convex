@@ -11,7 +11,7 @@ Le front React est un support minimal. L'objectif est d'explorer les briques Con
 | 1     | Query + Mutation          | Lire et écrire des tâches                               | ✅     |
 | 2     | Temps réel                | Voir la liste se mettre à jour automatiquement          | ✅     |
 | 3     | Schéma + validation       | Structurer proprement les données                       | ✅     |
-| 4     | Auth                      | Introduire l'identité utilisateur                       |        |
+| 4     | Auth (Clerk)              | Introduire l'identité utilisateur via Clerk             | ✅     |
 | 5     | Autorisation              | Filtrer les données selon l'utilisateur                 |        |
 | 6     | HTTP Actions / API        | Exposer un endpoint REST ou webhook                     |        |
 | 7     | Action externe            | Appeler une API tierce depuis Convex                    |        |
@@ -39,6 +39,16 @@ Implémenté implicitement dans l'étape 1.
 - Les champs `text: v.string()` et `completed: v.boolean()` sont validés à l'écriture par Convex
 - Les types générés dans `_generated/dataModel.d.ts` passent de `any` à `Doc<'tasks'>` précis
 - Aucun changement nécessaire dans `tasks.ts` ni dans le front : le code était déjà conforme
+
+### Étape 4 — Auth via Clerk
+
+Alternative à Convex Auth (voir branche `master`) utilisant [Clerk](https://clerk.com) comme provider externe.
+
+- **`convex/auth.config.ts`** : déclare Clerk comme domaine de confiance pour la validation des JWTs Convex
+- **`src/main.tsx`** : `ClerkProvider` gère la session Clerk ; `ConvexProviderWithClerk` transmet automatiquement le JWT Clerk à chaque requête Convex
+- **`src/App.tsx`** : composants Clerk (`SignedIn`, `SignedOut`, `SignInButton`, `SignOutButton`) — aucun formulaire à écrire, Clerk fournit son propre UI
+
+Différence clé avec Convex Auth : Clerk gère entièrement l'authentification côté client. Côté Convex, `ctx.auth.getUserIdentity()` fonctionne de façon identique quel que soit le provider.
 
 ## Stack
 
