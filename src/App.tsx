@@ -1,10 +1,11 @@
 import { useState } from 'react'
-import { SignInButton, SignOutButton, SignedIn, SignedOut } from '@clerk/clerk-react'
+import { SignInButton, SignOutButton, SignedIn, SignedOut, useUser } from '@clerk/clerk-react'
 import { useMutation, useQuery } from 'convex/react'
 import { api } from '../convex/_generated/api'
 import './App.css'
 
 function App() {
+  const { user } = useUser()
   const tasks = useQuery(api.tasks.list)
   const createTask = useMutation(api.tasks.createTask)
   const toggleTask = useMutation(api.tasks.toggleTask)
@@ -25,6 +26,7 @@ function App() {
         <SignInButton />
       </SignedOut>
       <SignedIn>
+        <p>{user?.emailAddresses[0]?.emailAddress}</p>
         <SignOutButton />
         <form onSubmit={handleSubmit}>
           <input
