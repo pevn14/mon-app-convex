@@ -7,4 +7,8 @@ export default defineSchema({
     completed: v.boolean(),
     userId: v.string(),
   }),
+  counters: defineTable({
+    name: v.string(),
+    value: v.number(),
+  }).index('by_name', ['name']),
 })

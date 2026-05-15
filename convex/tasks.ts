@@ -1,4 +1,5 @@
 import { internalMutation, internalQuery, mutation, query } from './_generated/server'
+import { internal } from './_generated/api'
 import { v } from 'convex/values'
 
 export const listAll = internalQuery({
@@ -44,12 +45,25 @@ export const deleteTaskAsApi = internalMutation({
   },
 })
 
+export const capitalizeTask = internalMutation({
+  args: { id: v.id('tasks') },
+  handler: async (ctx, args) => {
+    const task = await ctx.db.get(args.id)
+    if (task === null) return
+    const capitalized = task.text.charAt(0).toUpperCase() + task.text.slice(1)
+    if (capitalized === task.text) return
+    await ctx.db.patch(args.id, { text: capitalized })
+    // console.log(`[scheduled] tâche capitalisée : "${task.text}" → "${capitalized}"`)
+  },
+})
+
 export const createTask = mutation({
   args: { text: v.string() },
   handler: async (ctx, args) => {
     const identity = await ctx.auth.getUserIdentity()
     if (identity === null) throw new Error('Non authentifié')
-    await ctx.db.insert('tasks', { text: args.text, completed: false, userId: identity.subject })
+    const id = await ctx.db.insert('tasks', { text: args.text, completed: false, userId: identity.subject })
+    await ctx.scheduler.runAfter(2_000, internal.tasks.capitalizeTask, { id })
   },
 })
 

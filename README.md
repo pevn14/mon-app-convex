@@ -15,7 +15,8 @@ Le front React est un support minimal. L'objectif est d'explorer les briques Con
 | 5     | Autorisation              | Filtrer les données selon l'utilisateur                 | ✅     |
 | 6     | HTTP Actions / API        | Exposer un endpoint REST ou webhook                     | ✅     |
 | 7     | Action externe            | Appeler une API tierce depuis Convex                    | ✅     |
-| 8     | File storage + scheduling | Upload de fichier puis tâche planifiée                  |        |
+| 8     | Scheduling                | Fonctions différées et cron jobs récurrents             | ✅     |
+| 9     | File storage              | Upload et lecture de fichiers                           |        |
 
 ## Ce qui a été implémenté
 
@@ -130,6 +131,41 @@ curl -X DELETE "https://<deployment>.convex.site/task?id=<id>" \
       → ctx.db.insert('tasks', ...)  — écriture transactionnelle
           → useQuery(list) mis à jour en temps réel
 ```
+
+### Étape 8 — Scheduling
+
+- **`convex/schema.ts`** : ajout de la table `counters` (name, value) avec index `by_name`
+- **`convex/tasks.ts`** : `capitalizeTask` (internalMutation) — planifiée 2s après la création d'une tâche via `ctx.scheduler.runAfter`
+- **`convex/crons.ts`** : `incrementCounter` (internalMutation) + cron toutes les 2 minutes via `crons.interval` ; `getCronCounter` (query) pour lire le compteur
+- **`src/App.tsx`** : affichage du compteur cron en temps réel via `useQuery`
+
+#### Scheduled function — `runAfter`
+
+Déclenchée depuis `createTask` après insertion en base :
+
+```ts
+const id = await ctx.db.insert('tasks', { ... })
+await ctx.scheduler.runAfter(2_000, internal.tasks.capitalizeTask, { id })
+```
+
+- Le délai est en millisecondes
+- La fonction reçoit ses arguments sérialisés — relire la donnée depuis la base au moment de l'exécution
+- L'auth n'est pas propagée : `ctx.auth.getUserIdentity()` retourne `null` dans une scheduled function
+- Toujours vérifier que la donnée existe encore avant d'agir
+
+#### Cron job — `crons.interval`
+
+Déclaré dans `convex/crons.ts`, exécuté automatiquement toutes les 2 minutes :
+
+```ts
+crons.interval("heartbeat", { minutes: 2 }, internal.crons.incrementCounter, {});
+```
+
+| | `runAfter` | Cron |
+|---|---|---|
+| Déclenchement | Depuis le code, une fois | Automatique, récurrent |
+| Planification | Dynamique | Statique dans `crons.ts` |
+| Usage | Effet différé après un événement | Tâche périodique |
 
 ## Stack
 

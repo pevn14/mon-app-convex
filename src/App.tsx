@@ -7,6 +7,7 @@ import './App.css'
 function App() {
   const { user } = useUser()
   const tasks = useQuery(api.tasks.list)
+  const cronCounter = useQuery(api.crons.getCronCounter)
   const createTask = useMutation(api.tasks.createTask)
   const toggleTask = useMutation(api.tasks.toggleTask)
   const deleteTask = useMutation(api.tasks.deleteTask)
@@ -27,6 +28,7 @@ function App() {
   return (
     <main>
       <h1>Mon app Convex</h1>
+      <p>Cron : {cronCounter ?? 0} exécution(s)</p>
       <SignedOut>
         <SignInButton />
       </SignedOut>
