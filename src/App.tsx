@@ -79,7 +79,7 @@ function App() {
                 checked={task.completed}
                 onChange={() => toggleTask({ id: task._id, completed: !task.completed })}
               />
-              {task.text}
+              <span>{task.text}</span>
 <input type="file" disabled={!!task.fileId} onChange={async (e) => {
                 const file = e.target.files?.[0]
                 if (!file) return
