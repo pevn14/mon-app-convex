@@ -16,7 +16,7 @@ Le front React est un support minimal. L'objectif est d'explorer les briques Con
 | 6     | HTTP Actions / API        | Exposer un endpoint REST ou webhook                     | ✅     |
 | 7     | Action externe            | Appeler une API tierce depuis Convex                    | ✅     |
 | 8     | Scheduling                | Fonctions différées et cron jobs récurrents             | ✅     |
-| 9     | File storage              | Upload et lecture de fichiers                           |        |
+| 9     | File storage              | Upload et lecture de fichiers                           | ✅     |
 
 ## Ce qui a été implémenté
 
@@ -166,6 +166,29 @@ crons.interval("heartbeat", { minutes: 2 }, internal.crons.incrementCounter, {})
 | Déclenchement | Depuis le code, une fois | Automatique, récurrent |
 | Planification | Dynamique | Statique dans `crons.ts` |
 | Usage | Effet différé après un événement | Tâche périodique |
+
+### Étape 9 — File Storage
+
+- **`convex/schema.ts`** : ajout de la table `files` (`storageId`, `filename`, `contentType`) + champ `fileId: v.optional(v.id("files"))` sur `tasks`
+- **`convex/files.ts`** : `generateUploadUrl`, `saveFile`, `listFiles`, `deleteFile`
+- **`convex/tasks.ts`** : mutation `attachFile` — associe un document `files` à une tâche (bloque si un fichier est déjà attaché)
+- **`src/App.tsx`** : upload + sauvegarde métadonnées + attachement à une tâche + affichage image/lien + suppression
+
+#### Flux d'upload
+
+```
+1. generateUploadUrl()              → URL pré-signée temporaire
+2. fetch(url, { method: POST, body: file })  → upload direct vers Convex Storage
+3. saveFile(storageId, filename, contentType)  → Id<"files">
+4. attachFile(taskId, fileId)       → tâche liée au document files
+```
+
+#### Concepts clés
+
+- Le fichier binaire est dans `_storage` — les métadonnées applicatives sont dans la table `files`
+- `v.id("files")` sur la tâche crée une référence typée vers l'entité fichier, pas vers le blob brut
+- `ctx.storage.getUrl(storageId)` retourne une URL pré-signée (~1h) ou `null` si le fichier n'existe plus — toujours vérifier avant d'afficher
+- Convex ne cascade pas les suppressions : supprimer un fichier laisse les références dans les tâches orphelines
 
 ## Stack
 

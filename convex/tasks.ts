@@ -81,6 +81,21 @@ export const toggleTask = mutation({
   },
 })
 
+export const attachFile = mutation({
+  args: {
+    id: v.id('tasks'),
+    fileId: v.id('files'),
+  },
+  handler: async (ctx, args) => {
+    const identity = await ctx.auth.getUserIdentity()
+    if (identity === null) throw new Error('Non authentifié')
+    const task = await ctx.db.get(args.id)
+    if (task?.userId !== identity.subject) throw new Error('Non autorisé')
+    if (task?.fileId !== undefined) throw new Error('Un fichier est déjà attaché à cette tâche')
+    await ctx.db.patch(args.id, { fileId: args.fileId })
+  },
+})
+
 export const deleteTask = mutation({
   args: { id: v.id('tasks') },
   handler: async (ctx, args) => {
