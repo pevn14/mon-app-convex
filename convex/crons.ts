@@ -1,7 +1,6 @@
 import { cronJobs } from "convex/server";
 import { internalMutation, query } from "./_generated/server";
 import { internal } from "./_generated/api";
-import { v } from "convex/values";
 
 export const getCronCounter = query({
   args: {},
