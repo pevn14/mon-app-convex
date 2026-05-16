@@ -4,6 +4,15 @@ Projet de prise en main de [Convex](https://convex.dev), construit sur une base 
 
 Le front React est un support minimal. L'objectif est d'explorer les briques Convex étape par étape.
 
+## Documentation
+
+Ce README sert de **journal d'implémentation** : ce qui a été fait, fichier par fichier, pour chacune des neuf étapes du projet.
+
+Deux documents complètent cette base :
+
+- **[TUTORIAL.md](TUTORIAL.md)** — tutoriel pédagogique pas à pas pour comprendre Convex à travers ce projet. À lire en premier pour découvrir les concepts (queries, mutations, actions, scheduling, file storage, intégration Clerk…).
+- **[DEPLOYMENT.md](DEPLOYMENT.md)** — guide de configuration et de déploiement, du setup local jusqu'à la mise en production sur Vercel avec déploiement Convex automatique.
+
 ## Feuille de route
 
 | Étape | Brique Convex             | Objectif concret                                        | Statut |
@@ -194,3 +203,5 @@ crons.interval("heartbeat", { minutes: 2 }, internal.crons.incrementCounter, {})
 
 - [Vite](https://vite.dev) + React 19 + TypeScript
 - [Convex](https://convex.dev) — backend temps réel
+- [Clerk](https://clerk.com) — authentification (voir [TUTORIAL.md](TUTORIAL.md) pour le périmètre et la justification de ce choix)
+- Hébergement : Convex (backend) + Vercel (frontend) — détails dans [DEPLOYMENT.md](DEPLOYMENT.md)

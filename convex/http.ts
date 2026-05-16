@@ -32,7 +32,7 @@ http.route({
   path: "/ping",
   method: "GET",
   handler: httpAction(async () => {
-    return new Response(JSON.stringify({ ok: true, message: "Hello" }), {
+    return new Response(JSON.stringify({ ok: true, message: "Hello from Convex!" }), {
       status: 200,
       headers: { "Content-Type": "application/json" },
     });
